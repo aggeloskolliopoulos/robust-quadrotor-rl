@@ -17,7 +17,7 @@ DURATION_SEC = 10
 
 TARGET_POS = np.array([0.0, 0.0, 1.0])
 
-INITIAL_POS = np.array([[0.0, 0.0, 1.0]])
+INITIAL_POS = np.array([[0.0, 0.0, 0.5]])
 INITIAL_RPY = np.array([[0.0, 0.0, 0.0]])
 
 GUI = True
@@ -157,7 +157,7 @@ def main():
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
 
-    csv_path = results_dir / "pid_hover.csv"
+    csv_path = results_dir / "pid_hover_transient.csv"
 
     header = [
         "time",
