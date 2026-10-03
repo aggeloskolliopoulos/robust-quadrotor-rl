@@ -6,6 +6,8 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.utils.utils import sync
+from quadrotor_rl.evaluation.metrics import compute_position_rmse
+from quadrotor_rl.tasks.trajectories import hover_reference
 
 # Experiment configuration
 
@@ -41,6 +43,9 @@ def main():
     # Reset the simulator and get the initial observation
     obs, info = env.reset()
 
+    # Get the constant hover reference
+    target_pos, target_vel = hover_reference(TARGET_POS)
+
     # Create the PID controller
     controller = DSLPIDControl(drone_model=DRONE_MODEL)
 
@@ -51,7 +56,8 @@ def main():
     action[0], position_error, yaw_error = controller.computeControlFromState(
         control_timestep=env.CTRL_TIMESTEP,
         state=obs[0],
-        target_pos=TARGET_POS,
+        target_pos=target_pos,
+        target_vel=target_vel,
         target_rpy=np.zeros(3),
     )
 
@@ -89,7 +95,7 @@ def main():
         position = state[0:3]
 
         # Position tracking error: target - actual
-        position_error = TARGET_POS - position
+        position_error = target_pos - position
 
         # Time corresponding to the new state
         timestamp = (step + 1) * env.CTRL_TIMESTEP
@@ -101,9 +107,9 @@ def main():
                 position[0],
                 position[1],
                 position[2],
-                TARGET_POS[0],
-                TARGET_POS[1],
-                TARGET_POS[2],
+                target_pos[0],
+                target_pos[1],
+                target_pos[2],
                 position_error[0],
                 position_error[1],
                 position_error[2],
@@ -120,7 +126,8 @@ def main():
         action[0], _, _ = controller.computeControlFromState(
             control_timestep=env.CTRL_TIMESTEP,
             state=state,
-            target_pos=TARGET_POS,
+            target_pos=target_pos,
+            target_vel=target_vel,
             target_rpy=np.zeros(3),
         )
 
@@ -135,16 +142,7 @@ def main():
         if GUI:
             sync(step, start_time, env.CTRL_TIMESTEP)
 
-    # Convert logged errors to a NumPy array
-    position_errors = np.array(position_errors)
-
-    # RMSE separately for x, y, z
-    rmse_xyz = np.sqrt(np.mean(position_errors**2, axis=0))
-
-    # Overall 3D position RMSE
-    position_rmse = np.sqrt(
-        np.mean(np.sum(position_errors**2, axis=1))
-    )
+    rmse_xyz, position_rmse = compute_position_rmse(position_errors)
 
     print("\nPID hover results")
     print("-----------------")
@@ -185,7 +183,7 @@ def main():
     print(f"\nSaved log to: {csv_path}")
 
     print("\nFinal position:", obs[0, 0:3])
-    print("Final position error:", TARGET_POS - obs[0, 0:3])
+    print("Final position error:", target_pos - obs[0, 0:3])
 
     env.close()
 
