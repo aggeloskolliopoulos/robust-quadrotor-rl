@@ -70,3 +70,41 @@ def circle_reference(t, center, radius, angular_speed, altitude):
     ])
 
     return target_pos, target_vel
+
+def waypoint_reference(t, waypoints, hold_time):
+    """
+    Piecewise-constant waypoint reference.
+
+    Parameters
+    ----------
+    t : float
+        Current time in seconds.
+
+    waypoints : array-like, shape (N, 3)
+        Sequence of desired XYZ positions.
+
+    hold_time : float
+        Time in seconds to hold each waypoint.
+
+    Returns
+    -------
+    target_pos : np.ndarray, shape (3,)
+        Current desired position.
+
+    target_vel : np.ndarray, shape (3,)
+        Desired velocity. Zero for waypoint regulation.
+
+    waypoint_index : int
+        Index of the active waypoint.
+    """
+    waypoints = np.asarray(waypoints, dtype=float)
+
+    waypoint_index = min(
+        int(t // hold_time),
+        len(waypoints) - 1,
+    )
+
+    target_pos = waypoints[waypoint_index]
+    target_vel = np.zeros(3)
+
+    return target_pos, target_vel, waypoint_index
